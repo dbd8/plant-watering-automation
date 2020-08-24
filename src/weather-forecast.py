@@ -16,7 +16,7 @@ def rain_in_next_timewindow(weather_data, time_window) -> bool:
     return False
 
 
-time_window = 12
+time_window = 6
 
 lat = "49.2627"
 lon = "9.2995"
