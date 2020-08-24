@@ -30,14 +30,5 @@ r = requests.get(open_weather_map_url)
 
 weather_data = r.json()
 
-print(weather_data)
-
-# for hours in range(len(weather_data["hourly"])):
-#     if weather_data["hourly"][hours]["weather"][0]["main"] == "Rain":
-#         print(weather_data["hourly"][hours]["dt"])
-#         readable = datetime.datetime.fromtimestamp(weather_data["hourly"][hours]["dt"])
-#         print(readable)
-#         print(weather_data["hourly"][hours]["weather"][0]["main"])
-#         print(weather_data["hourly"][hours]["weather"][0]["description"])
-
-print(rain_in_next_timewindow(weather_data, time_window))
+# print(weather_data)
+# print(rain_in_next_timewindow(weather_data, time_window))
