@@ -1,0 +1,180 @@
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
+
+int Relay1 = D1;// 5
+int Relay2 = D2;
+int Relay3 = D3;
+int Relay4 = D4;
+
+
+const char* ssid     = "***";
+const char* password = "***";
+
+//change with your MQTT server IP address
+const char* mqtt_server = "***";
+
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+
+void callback(char* topic, byte* payload, unsigned int length) {
+  Serial.print(topic);
+  Serial.print(" => ");
+
+char* payload_str;
+  payload_str = (char*) malloc(length + 1);
+  memcpy(payload_str, payload, length);
+  payload_str[length] = '\0';
+  Serial.println(String(payload_str));
+
+  if ( String(topic) == "zone1" ) {
+    if (String(payload_str) == "off" ) {
+      digitalWrite(Relay1, HIGH);   // turn the RELAY off
+      client.publish("zone1/state","off");
+    } else if ( String(payload_str) == "on" ) {
+      digitalWrite(Relay1, LOW);    // turn the RELAY on
+      client.publish("zone1/state","on");
+    } else {
+      Serial.print("I do not know what to do with ");
+      Serial.print(String(payload_str));
+      Serial.print(" on topic ");
+      Serial.println( String(topic));
+    }
+  }
+  if ( String(topic) == "zone2" ) {
+    if (String(payload_str) == "off" ) {
+      digitalWrite(Relay2, HIGH);   // turn the RELAY off
+      client.publish("zone2/state","off");
+    } else if ( String(payload_str) == "on" ) {
+      digitalWrite(Relay2, LOW);    // turn the RELAY on
+      client.publish("zone2/state","on");
+    } else {
+      Serial.print("I do not know what to do with ");
+      Serial.print(String(payload_str));
+      Serial.print(" on topic ");
+      Serial.println( String(topic));
+    }
+  }
+    if ( String(topic) == "zone3" ) {
+    if (String(payload_str) == "off" ) {
+      digitalWrite(Relay3, HIGH);   // turn the RELAY off
+      client.publish("zone3/state","off");
+    } else if ( String(payload_str) == "on" ) {
+      digitalWrite(Relay3, LOW);    // turn the RELAY on
+      client.publish("zone3/state","on");
+    } else {
+      Serial.print("I do not know what to do with ");
+      Serial.print(String(payload_str));
+      Serial.print(" on topic ");
+      Serial.println( String(topic));
+    }
+  }
+  if ( String(topic) == "zone4" ) {
+    if (String(payload_str) == "off" ) {
+      digitalWrite(Relay4, HIGH);   // turn the RELAY off
+      client.publish("zone4/state","off");
+    } else if ( String(payload_str) == "on" ) {
+      digitalWrite(Relay4, LOW);    // turn the RELAY on
+      client.publish("zone1/state","on");
+    } else {
+      Serial.print("I do not know what to do with ");
+      Serial.print(String(payload_str));
+      Serial.print(" on topic ");
+      Serial.println( String(topic));
+    }
+  }
+}
+
+void connect_to_MQTT() {
+ client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
+
+  if (client.connect("beregnung_relay")) {
+    Serial.println("(re)-connected to MQTT");
+    client.subscribe("zone1");
+    client.subscribe("zone2");
+    client.subscribe("zone3");
+    client.subscribe("zone4");
+  } else {
+    Serial.println("Could not connect to MQTT");
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+  delay(10);
+
+  // Connecting to our WiFi network
+  Serial.println();
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  connect_to_MQTT();
+
+  // initialize pin 5, where the relay is connected to.
+  pinMode(Relay1, OUTPUT);
+  pinMode(Relay2, OUTPUT);
+  pinMode(Relay3, OUTPUT);
+  pinMode(Relay4, OUTPUT);
+
+}
+
+int tellstate = 0;
+
+void loop() {
+  client.loop();
+
+  if (! client.connected()) {
+    Serial.println("Not connected to MQTT....");
+    connect_to_MQTT();
+    delay(5000);
+  }
+
+  // Tell the current state Relay 1every 60 seconds
+  if ( (millis() - tellstate) > 60000 ) {
+    if ( digitalRead(Relay1) ) {
+       client.publish("zone1/state","off");
+    }
+    else {
+      client.publish("zone1/state","on");
+    }
+
+    if ( digitalRead(Relay2) ) {
+       client.publish("zone2/state","off");
+    }
+    else {
+      client.publish("zone2/state","on");
+    }
+
+    if ( digitalRead(Relay3) ) {
+       client.publish("zone3/state","off");
+    }
+    else {
+      client.publish("zone3/state","on");
+    }
+
+    if ( digitalRead(Relay4) ) {
+       client.publish("zone4/state","off");
+    }
+    else {
+      client.publish("zone4/state","on");
+    }
+
+    tellstate = millis();
+  }
+}

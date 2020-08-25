@@ -31,4 +31,4 @@ r = requests.get(open_weather_map_url)
 weather_data = r.json()
 
 # print(weather_data)
-# print(rain_in_next_timewindow(weather_data, time_window))
+print(rain_in_next_timewindow(weather_data, time_window))
