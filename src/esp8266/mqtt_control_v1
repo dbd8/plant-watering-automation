@@ -250,11 +250,29 @@ void loop() {
   }
 
   //GPIOS schalten
-  if(request.indexOf("mode=1")>=0){
+  if(request.indexOf("zone1=1")>=0){
     client.publish("zone1","off");
   }
-  else if(request.indexOf("mode=0")>=0){
+  else if(request.indexOf("zone1=0")>=0){
     client.publish("zone1","on");
+  }
+  if(request.indexOf("zone2=1")>=0){
+    client.publish("zone2","off");
+  }
+  else if(request.indexOf("zone2=0")>=0){
+    client.publish("zone2","on");
+  }
+  if(request.indexOf("zone3=1")>=0){
+    client.publish("zone3","off");
+  }
+  else if(request.indexOf("zone3=0")>=0){
+    client.publish("zone3","on");
+  }
+  if(request.indexOf("zone4=1")>=0){
+    client.publish("zone4","off");
+  }
+  else if(request.indexOf("zone4=0")>=0){
+    client.publish("zone4","on");
   }
 
   //Ausgabe erzeugen
@@ -263,11 +281,19 @@ void loop() {
   output += "Content-Type: text/html; charset=UTF-8\n\n";
   output += "<!DOCTYPE HTML>";
   output += "<html>";
-  output += "<h1>LED schalten</h1>";
+  output += "<h1>Zonen schalten</h1>";
   output += "<form action=\"\" method=\"GET\">";
-  output += "<button name=\"mode\" value=\"0\">AN</button>";
+  output += "<button name=\"zone1\" value=\"0\">Zone 1 - ON</button>";
+  output += "<button style=\"margin-left:30px;\" name=\"zone1\" value=\"1\">Zone 1 - OFF</button>";
   output += "<br><br>";
-  output += "<button name=\"mode\" value=\"1\">AUS</button>";
+  output += "<button name=\"zone2\" value=\"0\">Zone 2 - ON</button>";
+  output += "<button style=\"margin-left:30px;\" name=\"zone2\" value=\"1\">Zone 2 - OFF</button>";
+  output += "<br><br>";
+  output += "<button name=\"zone3\" value=\"0\">Zone 3 - ON</button>";
+  output += "<button style=\"margin-left:30px;\" name=\"zone3\" value=\"1\">Zone 3 - OFF</button>";
+  output += "<br><br>";
+  output += "<button name=\"zone4\" value=\"0\">Zone 4 - ON</button>";
+  output += "<button style=\"margin-left:30px;\" name=\"zone4\" value=\"1\">Zone 4 - OFF</button>";
   output += "</form>";
   output += "</html>";
 
