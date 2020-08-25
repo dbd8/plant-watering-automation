@@ -40,6 +40,9 @@ char* payload_str;
   payload_str[length] = '\0';
   Serial.println(String(payload_str));
 
+  char* temp = strtok(payload_str, "-");
+  Serial.println(temp);
+
   if ( String(topic) == "zone1" ) {
     if (String(payload_str) == "off" ) {
       digitalWrite(Relay1, LOW);   // turn the RELAY off
@@ -116,7 +119,6 @@ void connect_to_MQTT() {
     Serial.println("Could not connect to MQTT");
   }
 }
-
 
 
 
@@ -210,22 +212,22 @@ void loop() {
 
 
   // Timer for zones/Relays
-  if ( (millis() - zone1_clock) > zone1_timer ) {
+  if (( (millis() - zone1_clock) > zone1_timer ) and digitalRead(Relay1)) {
     digitalWrite(Relay1, LOW);   // turn the RELAY off
     client.publish("zone1/state","off");
     zone1_clock = 0;
   }
-  if ( (millis() - zone2_clock) > zone2_timer ) {
+  if (( (millis() - zone2_clock) > zone2_timer ) and digitalRead(Relay2)) {
     digitalWrite(Relay2, LOW);   // turn the RELAY off
     client.publish("zone2/state","off");
     zone2_clock = 0;
   }
-  if ( (millis() - zone3_clock) > zone3_timer ) {
+  if (( (millis() - zone3_clock) > zone3_timer ) and digitalRead(Relay3)) {
     digitalWrite(Relay3, LOW);   // turn the RELAY off
     client.publish("zone3/state","off");
     zone3_clock = 0;
   }
-  if ( (millis() - zone4_clock) > zone4_timer ) {
+  if (( (millis() - zone4_clock) > zone4_timer ) and digitalRead(Relay4)) {
     digitalWrite(Relay4, LOW);   // turn the RELAY off
     client.publish("zone4/state","off");
     zone4_clock = 0;
@@ -277,10 +279,13 @@ void loop() {
 
   //Ausgabe erzeugen
   String output;
-  output += "http/1.x 200 OK\n";
-  output += "Content-Type: text/html; charset=UTF-8\n\n";
-  output += "<!DOCTYPE HTML>";
+  //output += "http/1.x 200 OK\n";
+  //output += "Content-Type: text/html; charset=UTF-8\n\n";
+  output += "<!DOCTYPE html>";
   output += "<html>";
+  output += "<head><title>plant watering automation</title>";
+  output += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">";
+  output += "</head>";
   output += "<h1>Zonen schalten</h1>";
   output += "<form action=\"\" method=\"GET\">";
   output += "<button name=\"zone1\" value=\"0\">Zone 1 - ON</button>";
@@ -298,6 +303,6 @@ void loop() {
   output += "</html>";
 
   wifi_client.print(output);
-
+  delay(500);
   wifi_client.stop();
 }
