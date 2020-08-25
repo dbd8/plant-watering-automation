@@ -6,6 +6,17 @@ int Relay2 = D2;
 int Relay3 = D3;
 int Relay4 = D4;
 
+int zone1_timer = 5000;
+int zone2_timer = 5000;
+int zone3_timer = 5000;
+int zone4_timer = 5000;
+
+int zone1_clock = 0;
+int zone2_clock = 0;
+int zone3_clock = 0;
+int zone4_clock = 0;
+
+int tellstate = 0;
 
 const char* ssid     = "***";
 const char* password = "***";
@@ -36,9 +47,7 @@ char* payload_str;
     } else if ( String(payload_str) == "on" ) {
       digitalWrite(Relay1, HIGH);    // turn the RELAY on
       client.publish("zone1/state","on");
-      delay(5000);
-      digitalWrite(Relay1, LOW);   // turn the RELAY off
-      client.publish("zone1/state","off");
+      zone1_clock = millis();
     } else {
       Serial.print("I do not know what to do with ");
       Serial.print(String(payload_str));
@@ -48,11 +57,12 @@ char* payload_str;
   }
   if ( String(topic) == "zone2" ) {
     if (String(payload_str) == "off" ) {
-      digitalWrite(Relay2, HIGH);   // turn the RELAY off
+      digitalWrite(Relay2, LOW);   // turn the RELAY off
       client.publish("zone2/state","off");
     } else if ( String(payload_str) == "on" ) {
-      digitalWrite(Relay2, LOW);    // turn the RELAY on
+      digitalWrite(Relay2, HIGH);    // turn the RELAY on
       client.publish("zone2/state","on");
+      zone2_clock = millis();
     } else {
       Serial.print("I do not know what to do with ");
       Serial.print(String(payload_str));
@@ -62,11 +72,12 @@ char* payload_str;
   }
     if ( String(topic) == "zone3" ) {
     if (String(payload_str) == "off" ) {
-      digitalWrite(Relay3, HIGH);   // turn the RELAY off
+      digitalWrite(Relay3, LOW);   // turn the RELAY off
       client.publish("zone3/state","off");
     } else if ( String(payload_str) == "on" ) {
-      digitalWrite(Relay3, LOW);    // turn the RELAY on
+      digitalWrite(Relay3, HIGH);    // turn the RELAY on
       client.publish("zone3/state","on");
+      zone3_clock = millis();
     } else {
       Serial.print("I do not know what to do with ");
       Serial.print(String(payload_str));
@@ -76,11 +87,12 @@ char* payload_str;
   }
   if ( String(topic) == "zone4" ) {
     if (String(payload_str) == "off" ) {
-      digitalWrite(Relay4, HIGH);   // turn the RELAY off
+      digitalWrite(Relay4, LOW);   // turn the RELAY off
       client.publish("zone4/state","off");
     } else if ( String(payload_str) == "on" ) {
-      digitalWrite(Relay4, LOW);    // turn the RELAY on
+      digitalWrite(Relay4, HIGH);    // turn the RELAY on
       client.publish("zone1/state","on");
+      zone4_clock = millis();
     } else {
       Serial.print("I do not know what to do with ");
       Serial.print(String(payload_str));
@@ -104,6 +116,12 @@ void connect_to_MQTT() {
     Serial.println("Could not connect to MQTT");
   }
 }
+
+
+
+
+
+
 
 void setup() {
   Serial.begin(115200);
@@ -139,7 +157,13 @@ void setup() {
   server.begin();
 }
 
-int tellstate = 0;
+
+
+
+
+
+
+
 
 void loop() {
   client.loop();
@@ -182,6 +206,35 @@ void loop() {
 
     tellstate = millis();
   }
+
+
+
+  // Timer for zones/Relays
+  if ( (millis() - zone1_clock) > zone1_timer ) {
+    digitalWrite(Relay1, LOW);   // turn the RELAY off
+    client.publish("zone1/state","off");
+    zone1_clock = 0;
+  }
+  if ( (millis() - zone2_clock) > zone2_timer ) {
+    digitalWrite(Relay2, LOW);   // turn the RELAY off
+    client.publish("zone2/state","off");
+    zone2_clock = 0;
+  }
+  if ( (millis() - zone3_clock) > zone3_timer ) {
+    digitalWrite(Relay3, LOW);   // turn the RELAY off
+    client.publish("zone3/state","off");
+    zone3_clock = 0;
+  }
+  if ( (millis() - zone4_clock) > zone4_timer ) {
+    digitalWrite(Relay4, LOW);   // turn the RELAY off
+    client.publish("zone4/state","off");
+    zone4_clock = 0;
+  }
+
+
+
+
+  // Browser control
 
   WiFiClient wifi_client = server.available();
   if(!wifi_client){
