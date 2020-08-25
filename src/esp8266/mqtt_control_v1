@@ -11,8 +11,9 @@ const char* ssid     = "***";
 const char* password = "***";
 
 //change with your MQTT server IP address
-const char* mqtt_server = "***";
+const char* mqtt_server = "192.168.0.122";
 
+WiFiServer server(80);
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -30,11 +31,14 @@ char* payload_str;
 
   if ( String(topic) == "zone1" ) {
     if (String(payload_str) == "off" ) {
-      digitalWrite(Relay1, HIGH);   // turn the RELAY off
+      digitalWrite(Relay1, LOW);   // turn the RELAY off
       client.publish("zone1/state","off");
     } else if ( String(payload_str) == "on" ) {
-      digitalWrite(Relay1, LOW);    // turn the RELAY on
+      digitalWrite(Relay1, HIGH);    // turn the RELAY on
       client.publish("zone1/state","on");
+      delay(5000);
+      digitalWrite(Relay1, LOW);   // turn the RELAY off
+      client.publish("zone1/state","off");
     } else {
       Serial.print("I do not know what to do with ");
       Serial.print(String(payload_str));
@@ -132,6 +136,7 @@ void setup() {
   pinMode(Relay3, OUTPUT);
   pinMode(Relay4, OUTPUT);
 
+  server.begin();
 }
 
 int tellstate = 0;
@@ -148,33 +153,72 @@ void loop() {
   // Tell the current state Relay 1every 60 seconds
   if ( (millis() - tellstate) > 60000 ) {
     if ( digitalRead(Relay1) ) {
-       client.publish("zone1/state","off");
+       client.publish("zone1/state","on");
     }
     else {
-      client.publish("zone1/state","on");
+      client.publish("zone1/state","off");
     }
 
     if ( digitalRead(Relay2) ) {
-       client.publish("zone2/state","off");
+       client.publish("zone2/state","on");
     }
     else {
-      client.publish("zone2/state","on");
+      client.publish("zone2/state","off");
     }
 
     if ( digitalRead(Relay3) ) {
-       client.publish("zone3/state","off");
+       client.publish("zone3/state","on");
     }
     else {
-      client.publish("zone3/state","on");
+      client.publish("zone3/state","off");
     }
 
     if ( digitalRead(Relay4) ) {
-       client.publish("zone4/state","off");
+       client.publish("zone4/state","on");
     }
     else {
-      client.publish("zone4/state","on");
+      client.publish("zone4/state","off");
     }
 
     tellstate = millis();
   }
+
+  WiFiClient wifi_client = server.available();
+  if(!wifi_client){
+    return;
+  }
+
+  String request = wifi_client.readStringUntil('\r');
+  wifi_client.flush();
+
+  if(request==""){
+    wifi_client.stop();
+    return;
+  }
+
+  //GPIOS schalten
+  if(request.indexOf("mode=1")>=0){
+    client.publish("zone1","off");
+  }
+  else if(request.indexOf("mode=0")>=0){
+    client.publish("zone1","on");
+  }
+
+  //Ausgabe erzeugen
+  String output;
+  output += "http/1.x 200 OK\n";
+  output += "Content-Type: text/html; charset=UTF-8\n\n";
+  output += "<!DOCTYPE HTML>";
+  output += "<html>";
+  output += "<h1>LED schalten</h1>";
+  output += "<form action=\"\" method=\"GET\">";
+  output += "<button name=\"mode\" value=\"0\">AN</button>";
+  output += "<br><br>";
+  output += "<button name=\"mode\" value=\"1\">AUS</button>";
+  output += "</form>";
+  output += "</html>";
+
+  wifi_client.print(output);
+
+  wifi_client.stop();
 }
