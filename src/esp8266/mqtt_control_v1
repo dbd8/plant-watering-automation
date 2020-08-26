@@ -1,10 +1,10 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-int Relay1 = D1;// 5
-int Relay2 = D2;
-int Relay3 = D3;
-int Relay4 = D4;
+int Relay1 = 5;
+int Relay2 = 4;
+int Relay3 = 0;
+int Relay4 = 2;
 
 long zone1_timer = 5000;
 long zone2_timer = 5000;
@@ -48,14 +48,10 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }else{
     timer_override = 0;
   }
-  //Serial.println(strtok((payload_str), ";"));
+
   if ( String(topic) == "zone1" ) {
-    //if (strtok((payload_str), ";") == "off" ) {
-    if (strcmp(strtok(payload_str, ";"), "off") == 0 ) {
-      digitalWrite(Relay1, LOW);   // turn the RELAY off
-      client.publish("zone1/state","off");
-    } else if (strcmp(strtok(payload_str, ";"), "on") == 0 ) {
-      digitalWrite(Relay1, HIGH);    // turn the RELAY on
+    if (strcmp(strtok(payload_str, ";"), "on") == 0 ) {
+      digitalWrite(Relay1, LOW);   // turn the RELAY on
       client.publish("zone1/state","on");
       zone1_clock = millis();
       if (timer_override != 0){
@@ -63,6 +59,9 @@ void callback(char* topic, byte* payload, unsigned int length) {
       }else{
         zone1_timer = 5000;
       }
+    } else if (strcmp(strtok(payload_str, ";"), "off") == 0 ) {
+      digitalWrite(Relay1, HIGH);    // turn the RELAY off
+      client.publish("zone1/state","off");
     } else {
       Serial.print("I do not know what to do with ");
       Serial.print(String(payload_str));
@@ -70,14 +69,20 @@ void callback(char* topic, byte* payload, unsigned int length) {
       Serial.println( String(topic));
     }
   }
+
   if ( String(topic) == "zone2" ) {
-    if (String(payload_str) == "off" ) {
-      digitalWrite(Relay2, LOW);   // turn the RELAY off
-      client.publish("zone2/state","off");
-    } else if ( String(payload_str) == "on" ) {
-      digitalWrite(Relay2, HIGH);    // turn the RELAY on
+    if (strcmp(strtok(payload_str, ";"), "on") == 0 ) {
+      digitalWrite(Relay2, LOW);   // turn the RELAY on
       client.publish("zone2/state","on");
       zone2_clock = millis();
+      if (timer_override != 0){
+        zone2_timer = timer_override;
+      }else{
+        zone2_timer = 5000;
+      }
+    } else if (strcmp(strtok(payload_str, ";"), "off") == 0 ) {
+      digitalWrite(Relay2, HIGH);    // turn the RELAY off
+      client.publish("zone2/state","off");
     } else {
       Serial.print("I do not know what to do with ");
       Serial.print(String(payload_str));
@@ -86,13 +91,18 @@ void callback(char* topic, byte* payload, unsigned int length) {
     }
   }
   if ( String(topic) == "zone3" ) {
-    if (String(payload_str) == "off" ) {
-      digitalWrite(Relay3, LOW);   // turn the RELAY off
-      client.publish("zone3/state","off");
-    } else if ( String(payload_str) == "on" ) {
-      digitalWrite(Relay3, HIGH);    // turn the RELAY on
+    if (strcmp(strtok(payload_str, ";"), "on") == 0 ) {
+      digitalWrite(Relay3, LOW);   // turn the RELAY on
       client.publish("zone3/state","on");
       zone3_clock = millis();
+      if (timer_override != 0){
+        zone3_timer = timer_override;
+      }else{
+        zone3_timer = 5000;
+      }
+    } else if (strcmp(strtok(payload_str, ";"), "off") == 0 ) {
+      digitalWrite(Relay3, HIGH);    // turn the RELAY off
+      client.publish("zone3/state","off");
     } else {
       Serial.print("I do not know what to do with ");
       Serial.print(String(payload_str));
@@ -101,13 +111,18 @@ void callback(char* topic, byte* payload, unsigned int length) {
     }
   }
   if ( String(topic) == "zone4" ) {
-    if (String(payload_str) == "off" ) {
-      digitalWrite(Relay4, LOW);   // turn the RELAY off
-      client.publish("zone4/state","off");
-    } else if ( String(payload_str) == "on" ) {
-      digitalWrite(Relay4, HIGH);    // turn the RELAY on
-      client.publish("zone1/state","on");
+    if (strcmp(strtok(payload_str, ";"), "on") == 0 ) {
+      digitalWrite(Relay4, LOW);   // turn the RELAY on
+      client.publish("zone4/state","on");
       zone4_clock = millis();
+      if (timer_override != 0){
+        zone4_timer = timer_override;
+      }else{
+        zone4_timer = 5000;
+      }
+    } else if (strcmp(strtok(payload_str, ";"), "off") == 0 ) {
+      digitalWrite(Relay4, HIGH);    // turn the RELAY off
+      client.publish("zone4/state","off");
     } else {
       Serial.print("I do not know what to do with ");
       Serial.print(String(payload_str));
@@ -224,27 +239,26 @@ void loop() {
 
 
   // Timer for zones/Relays
-  if (( (millis() - zone1_clock) > zone1_timer ) and digitalRead(Relay1)) {
-    digitalWrite(Relay1, LOW);   // turn the RELAY off
+  if (( (millis() - zone1_clock) > zone1_timer ) and (digitalRead(Relay1) == 0)) {
+    digitalWrite(Relay1, HIGH);   // turn the RELAY off
     client.publish("zone1/state","off");
     zone1_clock = 0;
   }
-  if (( (millis() - zone2_clock) > zone2_timer ) and digitalRead(Relay2)) {
-    digitalWrite(Relay2, LOW);   // turn the RELAY off
+  if (( (millis() - zone2_clock) > zone2_timer ) and (digitalRead(Relay2) == 0)) {
+    digitalWrite(Relay2, HIGH);   // turn the RELAY off
     client.publish("zone2/state","off");
     zone2_clock = 0;
   }
-  if (( (millis() - zone3_clock) > zone3_timer ) and digitalRead(Relay3)) {
-    digitalWrite(Relay3, LOW);   // turn the RELAY off
+  if (( (millis() - zone3_clock) > zone3_timer ) and (digitalRead(Relay3) == 0)) {
+    digitalWrite(Relay3, HIGH);   // turn the RELAY off
     client.publish("zone3/state","off");
     zone3_clock = 0;
   }
-  if (( (millis() - zone4_clock) > zone4_timer ) and digitalRead(Relay4)) {
-    digitalWrite(Relay4, LOW);   // turn the RELAY off
+  if (( (millis() - zone4_clock) > zone4_timer ) and (digitalRead(Relay4) == 0)) {
+    digitalWrite(Relay4, HIGH);   // turn the RELAY off
     client.publish("zone4/state","off");
     zone4_clock = 0;
   }
-
 
 
 
