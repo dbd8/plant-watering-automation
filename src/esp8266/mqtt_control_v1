@@ -6,15 +6,17 @@ int Relay2 = D2;
 int Relay3 = D3;
 int Relay4 = D4;
 
-int zone1_timer = 5000;
-int zone2_timer = 5000;
-int zone3_timer = 5000;
-int zone4_timer = 5000;
+long zone1_timer = 5000;
+long zone2_timer = 5000;
+long zone3_timer = 5000;
+long zone4_timer = 5000;
 
-int zone1_clock = 0;
-int zone2_clock = 0;
-int zone3_clock = 0;
-int zone4_clock = 0;
+int timer_override = 0;
+
+long zone1_clock = 0;
+long zone2_clock = 0;
+long zone3_clock = 0;
+long zone4_clock = 0;
 
 int tellstate = 0;
 
@@ -34,23 +36,33 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print(topic);
   Serial.print(" => ");
 
-char* payload_str;
+  char* payload_str;
   payload_str = (char*) malloc(length + 1);
   memcpy(payload_str, payload, length);
   payload_str[length] = '\0';
   Serial.println(String(payload_str));
 
-  char* temp = strtok(payload_str, "-");
-  Serial.println(temp);
-
+  char* last_token = strrchr(payload_str, ';');
+  if (last_token != NULL){
+    timer_override = atoi(last_token+1);
+  }else{
+    timer_override = 0;
+  }
+  //Serial.println(strtok((payload_str), ";"));
   if ( String(topic) == "zone1" ) {
-    if (String(payload_str) == "off" ) {
+    //if (strtok((payload_str), ";") == "off" ) {
+    if (strcmp(strtok(payload_str, ";"), "off") == 0 ) {
       digitalWrite(Relay1, LOW);   // turn the RELAY off
       client.publish("zone1/state","off");
-    } else if ( String(payload_str) == "on" ) {
+    } else if (strcmp(strtok(payload_str, ";"), "on") == 0 ) {
       digitalWrite(Relay1, HIGH);    // turn the RELAY on
       client.publish("zone1/state","on");
       zone1_clock = millis();
+      if (timer_override != 0){
+        zone1_timer = timer_override;
+      }else{
+        zone1_timer = 5000;
+      }
     } else {
       Serial.print("I do not know what to do with ");
       Serial.print(String(payload_str));
@@ -73,7 +85,7 @@ char* payload_str;
       Serial.println( String(topic));
     }
   }
-    if ( String(topic) == "zone3" ) {
+  if ( String(topic) == "zone3" ) {
     if (String(payload_str) == "off" ) {
       digitalWrite(Relay3, LOW);   // turn the RELAY off
       client.publish("zone3/state","off");
@@ -251,7 +263,7 @@ void loop() {
     return;
   }
 
-  //GPIOS schalten
+  // publish MQTT message depending on action
   if(request.indexOf("zone1=1")>=0){
     client.publish("zone1","off");
   }
