@@ -24,7 +24,7 @@ const char* ssid     = "***";
 const char* password = "***";
 
 //change with your MQTT server IP address
-const char* mqtt_server = "192.168.0.122";
+const char* mqtt_server = "XXX.XXX.X.XXX";
 
 WiFiServer server(80);
 
@@ -190,10 +190,6 @@ void setup() {
 
 
 
-
-
-
-
 void loop() {
   client.loop();
 
@@ -240,23 +236,27 @@ void loop() {
 
   // Timer for zones/Relays
   if (( (millis() - zone1_clock) > zone1_timer ) and (digitalRead(Relay1) == 0)) {
+    //both of the following lines are doing the same, however they are not redundant
+    //the digitalWrite will switch off of the Relay even if network connection is lost and mqtt message cannot be published
+    //this guarentees high safety level of operation and prevents flooding
+    //the client.publish is necessary to tell the mqtt-broker and clients the new event for correct handling
     digitalWrite(Relay1, HIGH);   // turn the RELAY off
-    client.publish("zone1/state","off");
+    client.publish("zone1","off");
     zone1_clock = 0;
   }
   if (( (millis() - zone2_clock) > zone2_timer ) and (digitalRead(Relay2) == 0)) {
     digitalWrite(Relay2, HIGH);   // turn the RELAY off
-    client.publish("zone2/state","off");
+    client.publish("zone2","off");
     zone2_clock = 0;
   }
   if (( (millis() - zone3_clock) > zone3_timer ) and (digitalRead(Relay3) == 0)) {
     digitalWrite(Relay3, HIGH);   // turn the RELAY off
-    client.publish("zone3/state","off");
+    client.publish("zone3","off");
     zone3_clock = 0;
   }
   if (( (millis() - zone4_clock) > zone4_timer ) and (digitalRead(Relay4) == 0)) {
     digitalWrite(Relay4, HIGH);   // turn the RELAY off
-    client.publish("zone4/state","off");
+    client.publish("zone4","off");
     zone4_clock = 0;
   }
 
