@@ -1,18 +1,32 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-int Relay1 = D1;// 5
-int Relay2 = D2;
-int Relay3 = D3;
-int Relay4 = D4;
+int Relay1 = 5;
+int Relay2 = 4;
+int Relay3 = 0;
+int Relay4 = 2;
 
+long zone1_timer = 5000;
+long zone2_timer = 5000;
+long zone3_timer = 5000;
+long zone4_timer = 5000;
+
+int timer_override = 0;
+
+long zone1_clock = 0;
+long zone2_clock = 0;
+long zone3_clock = 0;
+long zone4_clock = 0;
+
+int tellstate = 0;
 
 const char* ssid     = "***";
 const char* password = "***";
 
 //change with your MQTT server IP address
-const char* mqtt_server = "***";
+const char* mqtt_server = "XXX.XXX.X.XXX";
 
+WiFiServer server(80);
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -22,19 +36,32 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print(topic);
   Serial.print(" => ");
 
-char* payload_str;
+  char* payload_str;
   payload_str = (char*) malloc(length + 1);
   memcpy(payload_str, payload, length);
   payload_str[length] = '\0';
   Serial.println(String(payload_str));
 
+  char* last_token = strrchr(payload_str, ';');
+  if (last_token != NULL){
+    timer_override = atoi(last_token+1);
+  }else{
+    timer_override = 0;
+  }
+
   if ( String(topic) == "zone1" ) {
-    if (String(payload_str) == "off" ) {
-      digitalWrite(Relay1, HIGH);   // turn the RELAY off
-      client.publish("zone1/state","off");
-    } else if ( String(payload_str) == "on" ) {
-      digitalWrite(Relay1, LOW);    // turn the RELAY on
+    if (strcmp(strtok(payload_str, ";"), "on") == 0 ) {
+      digitalWrite(Relay1, LOW);   // turn the RELAY on
       client.publish("zone1/state","on");
+      zone1_clock = millis();
+      if (timer_override != 0){
+        zone1_timer = timer_override;
+      }else{
+        zone1_timer = 5000;
+      }
+    } else if (strcmp(strtok(payload_str, ";"), "off") == 0 ) {
+      digitalWrite(Relay1, HIGH);    // turn the RELAY off
+      client.publish("zone1/state","off");
     } else {
       Serial.print("I do not know what to do with ");
       Serial.print(String(payload_str));
@@ -42,13 +69,20 @@ char* payload_str;
       Serial.println( String(topic));
     }
   }
+
   if ( String(topic) == "zone2" ) {
-    if (String(payload_str) == "off" ) {
-      digitalWrite(Relay2, HIGH);   // turn the RELAY off
-      client.publish("zone2/state","off");
-    } else if ( String(payload_str) == "on" ) {
-      digitalWrite(Relay2, LOW);    // turn the RELAY on
+    if (strcmp(strtok(payload_str, ";"), "on") == 0 ) {
+      digitalWrite(Relay2, LOW);   // turn the RELAY on
       client.publish("zone2/state","on");
+      zone2_clock = millis();
+      if (timer_override != 0){
+        zone2_timer = timer_override;
+      }else{
+        zone2_timer = 5000;
+      }
+    } else if (strcmp(strtok(payload_str, ";"), "off") == 0 ) {
+      digitalWrite(Relay2, HIGH);    // turn the RELAY off
+      client.publish("zone2/state","off");
     } else {
       Serial.print("I do not know what to do with ");
       Serial.print(String(payload_str));
@@ -56,13 +90,19 @@ char* payload_str;
       Serial.println( String(topic));
     }
   }
-    if ( String(topic) == "zone3" ) {
-    if (String(payload_str) == "off" ) {
-      digitalWrite(Relay3, HIGH);   // turn the RELAY off
-      client.publish("zone3/state","off");
-    } else if ( String(payload_str) == "on" ) {
-      digitalWrite(Relay3, LOW);    // turn the RELAY on
+  if ( String(topic) == "zone3" ) {
+    if (strcmp(strtok(payload_str, ";"), "on") == 0 ) {
+      digitalWrite(Relay3, LOW);   // turn the RELAY on
       client.publish("zone3/state","on");
+      zone3_clock = millis();
+      if (timer_override != 0){
+        zone3_timer = timer_override;
+      }else{
+        zone3_timer = 5000;
+      }
+    } else if (strcmp(strtok(payload_str, ";"), "off") == 0 ) {
+      digitalWrite(Relay3, HIGH);    // turn the RELAY off
+      client.publish("zone3/state","off");
     } else {
       Serial.print("I do not know what to do with ");
       Serial.print(String(payload_str));
@@ -71,12 +111,18 @@ char* payload_str;
     }
   }
   if ( String(topic) == "zone4" ) {
-    if (String(payload_str) == "off" ) {
-      digitalWrite(Relay4, HIGH);   // turn the RELAY off
+    if (strcmp(strtok(payload_str, ";"), "on") == 0 ) {
+      digitalWrite(Relay4, LOW);   // turn the RELAY on
+      client.publish("zone4/state","on");
+      zone4_clock = millis();
+      if (timer_override != 0){
+        zone4_timer = timer_override;
+      }else{
+        zone4_timer = 5000;
+      }
+    } else if (strcmp(strtok(payload_str, ";"), "off") == 0 ) {
+      digitalWrite(Relay4, HIGH);    // turn the RELAY off
       client.publish("zone4/state","off");
-    } else if ( String(payload_str) == "on" ) {
-      digitalWrite(Relay4, LOW);    // turn the RELAY on
-      client.publish("zone1/state","on");
     } else {
       Serial.print("I do not know what to do with ");
       Serial.print(String(payload_str));
@@ -100,6 +146,11 @@ void connect_to_MQTT() {
     Serial.println("Could not connect to MQTT");
   }
 }
+
+
+
+
+
 
 void setup() {
   Serial.begin(115200);
@@ -132,9 +183,12 @@ void setup() {
   pinMode(Relay3, OUTPUT);
   pinMode(Relay4, OUTPUT);
 
+  server.begin();
 }
 
-int tellstate = 0;
+
+
+
 
 void loop() {
   client.loop();
@@ -148,33 +202,133 @@ void loop() {
   // Tell the current state Relay 1every 60 seconds
   if ( (millis() - tellstate) > 60000 ) {
     if ( digitalRead(Relay1) ) {
-       client.publish("zone1/state","off");
+       client.publish("zone1/state","on");
     }
     else {
-      client.publish("zone1/state","on");
+      client.publish("zone1/state","off");
     }
 
     if ( digitalRead(Relay2) ) {
-       client.publish("zone2/state","off");
+       client.publish("zone2/state","on");
     }
     else {
-      client.publish("zone2/state","on");
+      client.publish("zone2/state","off");
     }
 
     if ( digitalRead(Relay3) ) {
-       client.publish("zone3/state","off");
+       client.publish("zone3/state","on");
     }
     else {
-      client.publish("zone3/state","on");
+      client.publish("zone3/state","off");
     }
 
     if ( digitalRead(Relay4) ) {
-       client.publish("zone4/state","off");
+       client.publish("zone4/state","on");
     }
     else {
-      client.publish("zone4/state","on");
+      client.publish("zone4/state","off");
     }
 
     tellstate = millis();
   }
+
+
+
+  // Timer for zones/Relays
+  if (( (millis() - zone1_clock) > zone1_timer ) and (digitalRead(Relay1) == 0)) {
+    //both of the following lines are doing the same, however they are not redundant
+    //the digitalWrite will switch off of the Relay even if network connection is lost and mqtt message cannot be published
+    //this guarentees high safety level of operation and prevents flooding
+    //the client.publish is necessary to tell the mqtt-broker and clients the new event for correct handling
+    digitalWrite(Relay1, HIGH);   // turn the RELAY off
+    client.publish("zone1","off");
+    zone1_clock = 0;
+  }
+  if (( (millis() - zone2_clock) > zone2_timer ) and (digitalRead(Relay2) == 0)) {
+    digitalWrite(Relay2, HIGH);   // turn the RELAY off
+    client.publish("zone2","off");
+    zone2_clock = 0;
+  }
+  if (( (millis() - zone3_clock) > zone3_timer ) and (digitalRead(Relay3) == 0)) {
+    digitalWrite(Relay3, HIGH);   // turn the RELAY off
+    client.publish("zone3","off");
+    zone3_clock = 0;
+  }
+  if (( (millis() - zone4_clock) > zone4_timer ) and (digitalRead(Relay4) == 0)) {
+    digitalWrite(Relay4, HIGH);   // turn the RELAY off
+    client.publish("zone4","off");
+    zone4_clock = 0;
+  }
+
+
+
+  // Browser control
+
+  WiFiClient wifi_client = server.available();
+  if(!wifi_client){
+    return;
+  }
+
+  String request = wifi_client.readStringUntil('\r');
+  wifi_client.flush();
+
+  if(request==""){
+    wifi_client.stop();
+    return;
+  }
+
+  // publish MQTT message depending on action
+  if(request.indexOf("zone1=1")>=0){
+    client.publish("zone1","off");
+  }
+  else if(request.indexOf("zone1=0")>=0){
+    client.publish("zone1","on");
+  }
+  if(request.indexOf("zone2=1")>=0){
+    client.publish("zone2","off");
+  }
+  else if(request.indexOf("zone2=0")>=0){
+    client.publish("zone2","on");
+  }
+  if(request.indexOf("zone3=1")>=0){
+    client.publish("zone3","off");
+  }
+  else if(request.indexOf("zone3=0")>=0){
+    client.publish("zone3","on");
+  }
+  if(request.indexOf("zone4=1")>=0){
+    client.publish("zone4","off");
+  }
+  else if(request.indexOf("zone4=0")>=0){
+    client.publish("zone4","on");
+  }
+
+  //Ausgabe erzeugen
+  String output;
+  //output += "http/1.x 200 OK\n";
+  //output += "Content-Type: text/html; charset=UTF-8\n\n";
+  output += "<!DOCTYPE html>";
+  output += "<html>";
+  output += "<head><title>plant watering automation</title>";
+  output += "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">";
+  output += "</head>";
+  output += "<h1>Zonen schalten</h1>";
+  output += "<form action=\"\" method=\"GET\">";
+  output += "<button name=\"zone1\" value=\"0\">Zone 1 - ON</button>";
+  output += "<button style=\"margin-left:30px;\" name=\"zone1\" value=\"1\">Zone 1 - OFF</button>";
+  output += "<br><br>";
+  output += "<button name=\"zone2\" value=\"0\">Zone 2 - ON</button>";
+  output += "<button style=\"margin-left:30px;\" name=\"zone2\" value=\"1\">Zone 2 - OFF</button>";
+  output += "<br><br>";
+  output += "<button name=\"zone3\" value=\"0\">Zone 3 - ON</button>";
+  output += "<button style=\"margin-left:30px;\" name=\"zone3\" value=\"1\">Zone 3 - OFF</button>";
+  output += "<br><br>";
+  output += "<button name=\"zone4\" value=\"0\">Zone 4 - ON</button>";
+  output += "<button style=\"margin-left:30px;\" name=\"zone4\" value=\"1\">Zone 4 - OFF</button>";
+  output += "</form>";
+  output += "</html>";
+
+  wifi_client.print(output);
+  delay(500);
+  wifi_client.stop();
 }
