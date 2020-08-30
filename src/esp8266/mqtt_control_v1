@@ -1,30 +1,31 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
-int Relay1 = 5;
-int Relay2 = 4;
-int Relay3 = 0;
-int Relay4 = 2;
+//################################################################################
+// CONFIG
+// you need to define your instances/zones/topic_names you want to automate
+// all of the following arrays need to have the same length / number of elements
 
-long zone1_timer = 5000;
-long zone2_timer = 5000;
-long zone3_timer = 5000;
-long zone4_timer = 5000;
+int topic_pin[] = {5, 4, 0, 2};
+char topic_names[4][30] = {"zone1","zone2","zone3","zone4"};
+long topic_timer[] = {0,0,0,0};
+long topic_timer_default[] = {5000,5000,5000,5000};
+long topic_clock[] = {0,0,0,0};
 
+//################################################################################
+
+int number_topic_names = (sizeof(topic_pin) / sizeof(topic_pin[0]));
 int timer_override = 0;
-
-long zone1_clock = 0;
-long zone2_clock = 0;
-long zone3_clock = 0;
-long zone4_clock = 0;
-
+int topic_state_refresh = 60000;
 int tellstate = 0;
 
+//WiFi-Settings
 const char* ssid     = "***";
 const char* password = "***";
 
 //change with your MQTT server IP address
-const char* mqtt_server = "XXX.XXX.X.XXX";
+const char* mqtt_server = "XXX.XXX.XXX.XXX";
+
 
 WiFiServer server(80);
 
@@ -49,99 +50,46 @@ void callback(char* topic, byte* payload, unsigned int length) {
     timer_override = 0;
   }
 
-  if ( String(topic) == "zone1" ) {
-    if (strcmp(strtok(payload_str, ";"), "on") == 0 ) {
-      digitalWrite(Relay1, LOW);   // turn the RELAY on
-      client.publish("zone1/state","on");
-      zone1_clock = millis();
-      if (timer_override != 0){
-        zone1_timer = timer_override;
-      }else{
-        zone1_timer = 5000;
-      }
-    } else if (strcmp(strtok(payload_str, ";"), "off") == 0 ) {
-      digitalWrite(Relay1, HIGH);    // turn the RELAY off
-      client.publish("zone1/state","off");
-    } else {
-      Serial.print("I do not know what to do with ");
-      Serial.print(String(payload_str));
-      Serial.print(" on topic ");
-      Serial.println( String(topic));
-    }
-  }
+  for ( int i = 0; i < number_topic_names; i++){
+    //concat char of topic_names with state
+    char topic_state[30];
+    strcpy(topic_state,topic_names[i]);
+    strcat(topic_state,"/state");
 
-  if ( String(topic) == "zone2" ) {
-    if (strcmp(strtok(payload_str, ";"), "on") == 0 ) {
-      digitalWrite(Relay2, LOW);   // turn the RELAY on
-      client.publish("zone2/state","on");
-      zone2_clock = millis();
-      if (timer_override != 0){
-        zone2_timer = timer_override;
-      }else{
-        zone2_timer = 5000;
+    if ( String(topic) == topic_names[i] ) {
+      //Serial.println("Here");
+      if (strcmp(strtok(payload_str, ";"), "on") == 0 ) {
+        digitalWrite(topic_pin[i], LOW);   // turn the topic_pin on
+        client.publish(topic_state ,"on");
+        topic_clock[i] = millis();
+        if (timer_override != 0){
+          topic_timer[i] = timer_override;
+        }else{
+          topic_timer[i] = topic_timer_default[i];
+        }
+      } else if (strcmp(strtok(payload_str, ";"), "off") == 0 ) {
+        digitalWrite(topic_pin[i], HIGH);    // turn the topic_pin off
+        client.publish(topic_state,"off");
+      } else {
+        Serial.print("I do not know what to do with ");
+        Serial.print(String(payload_str));
+        Serial.print(" on topic ");
+        Serial.println( String(topic));
       }
-    } else if (strcmp(strtok(payload_str, ";"), "off") == 0 ) {
-      digitalWrite(Relay2, HIGH);    // turn the RELAY off
-      client.publish("zone2/state","off");
-    } else {
-      Serial.print("I do not know what to do with ");
-      Serial.print(String(payload_str));
-      Serial.print(" on topic ");
-      Serial.println( String(topic));
-    }
-  }
-  if ( String(topic) == "zone3" ) {
-    if (strcmp(strtok(payload_str, ";"), "on") == 0 ) {
-      digitalWrite(Relay3, LOW);   // turn the RELAY on
-      client.publish("zone3/state","on");
-      zone3_clock = millis();
-      if (timer_override != 0){
-        zone3_timer = timer_override;
-      }else{
-        zone3_timer = 5000;
-      }
-    } else if (strcmp(strtok(payload_str, ";"), "off") == 0 ) {
-      digitalWrite(Relay3, HIGH);    // turn the RELAY off
-      client.publish("zone3/state","off");
-    } else {
-      Serial.print("I do not know what to do with ");
-      Serial.print(String(payload_str));
-      Serial.print(" on topic ");
-      Serial.println( String(topic));
-    }
-  }
-  if ( String(topic) == "zone4" ) {
-    if (strcmp(strtok(payload_str, ";"), "on") == 0 ) {
-      digitalWrite(Relay4, LOW);   // turn the RELAY on
-      client.publish("zone4/state","on");
-      zone4_clock = millis();
-      if (timer_override != 0){
-        zone4_timer = timer_override;
-      }else{
-        zone4_timer = 5000;
-      }
-    } else if (strcmp(strtok(payload_str, ";"), "off") == 0 ) {
-      digitalWrite(Relay4, HIGH);    // turn the RELAY off
-      client.publish("zone4/state","off");
-    } else {
-      Serial.print("I do not know what to do with ");
-      Serial.print(String(payload_str));
-      Serial.print(" on topic ");
-      Serial.println( String(topic));
     }
   }
 }
+
 
 void connect_to_MQTT() {
  client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
 
-  if (client.connect("beregnung_relay")) {
+  if (client.connect("plant-watering-automation")) {
     Serial.println("(re)-connected to MQTT");
-    client.subscribe("zone1");
-    client.subscribe("zone2");
-    client.subscribe("zone3");
-    client.subscribe("zone4");
+    for ( int i = 0; i < number_topic_names; i++){
+      client.subscribe(topic_names[i]);
+    }
   } else {
     Serial.println("Could not connect to MQTT");
   }
@@ -177,11 +125,10 @@ void setup() {
 
   connect_to_MQTT();
 
-  // initialize pin 5, where the relay is connected to.
-  pinMode(Relay1, OUTPUT);
-  pinMode(Relay2, OUTPUT);
-  pinMode(Relay3, OUTPUT);
-  pinMode(Relay4, OUTPUT);
+  // initialize pins
+  for ( int i = 0; i < number_topic_names; i++){
+    pinMode(topic_pin[i], OUTPUT);
+  }
 
   server.begin();
 }
@@ -199,65 +146,38 @@ void loop() {
     delay(5000);
   }
 
-  // Tell the current state Relay 1every 60 seconds
-  if ( (millis() - tellstate) > 60000 ) {
-    if ( digitalRead(Relay1) ) {
-       client.publish("zone1/state","on");
-    }
-    else {
-      client.publish("zone1/state","off");
-    }
+  // Tell the current state of topic_pins every X seconds
 
-    if ( digitalRead(Relay2) ) {
-       client.publish("zone2/state","on");
-    }
-    else {
-      client.publish("zone2/state","off");
-    }
+  if ( (millis() - tellstate) > topic_state_refresh ) {
+    for ( int i = 0; i < number_topic_names; i++){
+      //concat char of topic_names with state
+      char topic_state[30];
+      strcpy(topic_state,topic_names[i]);
+      strcat(topic_state,"/state");
 
-    if ( digitalRead(Relay3) ) {
-       client.publish("zone3/state","on");
-    }
-    else {
-      client.publish("zone3/state","off");
-    }
-
-    if ( digitalRead(Relay4) ) {
-       client.publish("zone4/state","on");
-    }
-    else {
-      client.publish("zone4/state","off");
+      if ( digitalRead(topic_pin[i]) ) {
+         client.publish(topic_state,"off");
+      }
+      else {
+        client.publish(topic_state,"on");
+      }
     }
 
     tellstate = millis();
   }
 
 
-
-  // Timer for zones/Relays
-  if (( (millis() - zone1_clock) > zone1_timer ) and (digitalRead(Relay1) == 0)) {
-    //both of the following lines are doing the same, however they are not redundant
-    //the digitalWrite will switch off of the Relay even if network connection is lost and mqtt message cannot be published
-    //this guarentees high safety level of operation and prevents flooding
-    //the client.publish is necessary to tell the mqtt-broker and clients the new event for correct handling
-    digitalWrite(Relay1, HIGH);   // turn the RELAY off
-    client.publish("zone1","off");
-    zone1_clock = 0;
-  }
-  if (( (millis() - zone2_clock) > zone2_timer ) and (digitalRead(Relay2) == 0)) {
-    digitalWrite(Relay2, HIGH);   // turn the RELAY off
-    client.publish("zone2","off");
-    zone2_clock = 0;
-  }
-  if (( (millis() - zone3_clock) > zone3_timer ) and (digitalRead(Relay3) == 0)) {
-    digitalWrite(Relay3, HIGH);   // turn the RELAY off
-    client.publish("zone3","off");
-    zone3_clock = 0;
-  }
-  if (( (millis() - zone4_clock) > zone4_timer ) and (digitalRead(Relay4) == 0)) {
-    digitalWrite(Relay4, HIGH);   // turn the RELAY off
-    client.publish("zone4","off");
-    zone4_clock = 0;
+  // Timer for switch off of topics
+  for ( int i = 0; i < number_topic_names; i++){
+    if (( (millis() - topic_clock[i]) > topic_timer[i] ) and (digitalRead(topic_pin[i]) == 0)) {
+      //both of the following lines are doing the same, however they are not redundant
+      //the digitalWrite will switch off of the topic_pin even if network connection is lost and mqtt message cannot be published
+      //this guarentees high safety level of operation and prevents flooding
+      //the client.publish is necessary to tell the mqtt-broker and clients the new event for correct handling
+      digitalWrite(topic_pin[i], HIGH);   // turn the topic_pin off
+      client.publish(topic_names[i],"off");
+      topic_clock[i] = 0;
+    }
   }
 
 
@@ -331,4 +251,5 @@ void loop() {
   wifi_client.print(output);
   delay(500);
   wifi_client.stop();
+
 }
