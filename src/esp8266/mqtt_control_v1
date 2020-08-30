@@ -19,6 +19,13 @@ int timer_override = 0;
 int topic_state_refresh = 60000;
 int tellstate = 0;
 
+const int AirValue = 835;   //you need to replace this value with Value_1
+const int WaterValue = 475;  //you need to replace this value with Value_2
+const int SensorPin = A0;
+int soilMoistureValue = 0;
+int soilMoisturePercent=0;
+long moistureClock=0;
+
 //WiFi-Settings
 const char* ssid     = "***";
 const char* password = "***";
@@ -58,7 +65,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
     if ( String(topic) == topic_names[i] ) {
       //Serial.println("Here");
-      if (strcmp(strtok(payload_str, ";"), "on") == 0 ) {
+      if ((strcmp(strtok(payload_str, ";"), "on") == 0 ) and (soilMoisturePercent < 50)) {
         digitalWrite(topic_pin[i], LOW);   // turn the topic_pin on
         client.publish(topic_state ,"on");
         topic_clock[i] = millis();
@@ -180,7 +187,14 @@ void loop() {
     }
   }
 
-
+  if ( (millis() - moistureClock) > 1000 ) {
+    soilMoistureValue = analogRead(SensorPin);  //put Sensor insert into soil
+    soilMoisturePercent = map(soilMoistureValue, AirValue, WaterValue, 0, 100);
+    //Serial.println(soilMoistureValue);
+    //Serial.println(soilMoisturePercent);
+    //delay(1000);
+    moistureClock = millis();
+  }
 
   // Browser control
 
