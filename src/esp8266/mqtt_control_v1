@@ -6,7 +6,7 @@
 // you need to define your instances/zones/topic_names you want to automate
 // all of the following arrays need to have the same length / number of elements
 
-int topic_pin[] = {5, 4, 0, 2};
+int topic_pin[] = {D1, D2, D3, D4};
 char topic_names[4][30] = {"zone1","zone2","zone3","zone4"};
 long topic_timer[] = {0,0,0,0};
 long topic_timer_default[] = {5000,5000,5000,5000};
@@ -19,8 +19,8 @@ int timer_override = 0;
 int topic_state_refresh = 60000;
 int tellstate = 0;
 
-const int AirValue = 835;   //you need to replace this value with Value_1
-const int WaterValue = 475;  //you need to replace this value with Value_2
+const int AirValue = 835;   //you need to replace this with your sensors value
+const int WaterValue = 475;  //you need to replace this with your sensors value
 const int SensorPin = A0;
 int soilMoistureValue = 0;
 int soilMoisturePercent=0;
@@ -63,6 +63,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
     strcpy(topic_state,topic_names[i]);
     strcat(topic_state,"/state");
 
+    moistureCheck();
+
     if ( String(topic) == topic_names[i] ) {
       //Serial.println("Here");
       if ((strcmp(strtok(payload_str, ";"), "on") == 0 ) and (soilMoisturePercent < 50)) {
@@ -103,7 +105,16 @@ void connect_to_MQTT() {
 }
 
 
-
+void moistureCheck(){
+  if ( (millis() - moistureClock) > 1000 ) {
+  soilMoistureValue = analogRead(SensorPin);  //put Sensor insert into soil
+  soilMoisturePercent = map(soilMoistureValue, AirValue, WaterValue, 0, 100);
+  //Serial.println(soilMoistureValue);
+  //Serial.println(soilMoisturePercent);
+  //delay(1000);
+  moistureClock = millis();
+  }
+}
 
 
 
@@ -139,7 +150,6 @@ void setup() {
 
   server.begin();
 }
-
 
 
 
@@ -187,14 +197,7 @@ void loop() {
     }
   }
 
-  if ( (millis() - moistureClock) > 1000 ) {
-    soilMoistureValue = analogRead(SensorPin);  //put Sensor insert into soil
-    soilMoisturePercent = map(soilMoistureValue, AirValue, WaterValue, 0, 100);
-    //Serial.println(soilMoistureValue);
-    //Serial.println(soilMoisturePercent);
-    //delay(1000);
-    moistureClock = millis();
-  }
+
 
   // Browser control
 
