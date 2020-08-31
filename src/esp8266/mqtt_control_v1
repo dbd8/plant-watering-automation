@@ -22,9 +22,8 @@ int tellstate = 0;
 const int AirValue = 835;   //you need to replace this with your sensors value
 const int WaterValue = 475;  //you need to replace this with your sensors value
 const int SensorPin = A0;
-int soilMoistureValue = 0;
-int soilMoisturePercent=0;
-long moistureClock=0;
+int moistureThreshold = 50; //percentage of moisture, if moisture below
+
 
 //WiFi-Settings
 const char* ssid     = "***";
@@ -63,18 +62,24 @@ void callback(char* topic, byte* payload, unsigned int length) {
     strcpy(topic_state,topic_names[i]);
     strcat(topic_state,"/state");
 
-    moistureCheck();
 
     if ( String(topic) == topic_names[i] ) {
       //Serial.println("Here");
-      if ((strcmp(strtok(payload_str, ";"), "on") == 0 ) and (soilMoisturePercent < 50)) {
-        digitalWrite(topic_pin[i], LOW);   // turn the topic_pin on
-        client.publish(topic_state ,"on");
-        topic_clock[i] = millis();
-        if (timer_override != 0){
-          topic_timer[i] = timer_override;
+      if ((strcmp(strtok(payload_str, ";"), "on") == 0 )) {
+        if (soilMoisturePercent() > moistureThreshold){
+          Serial.print("Won't switch on '");
+          Serial.print(topic);
+          Serial.print("' due to sufficient moisture level: ");
+          Serial.println(int(soilMoisturePercent()));
         }else{
-          topic_timer[i] = topic_timer_default[i];
+          digitalWrite(topic_pin[i], LOW);   // turn the topic_pin on
+          client.publish(topic_state ,"on");
+          topic_clock[i] = millis();
+          if (timer_override != 0){
+            topic_timer[i] = timer_override;
+          }else{
+            topic_timer[i] = topic_timer_default[i];
+          }
         }
       } else if (strcmp(strtok(payload_str, ";"), "off") == 0 ) {
         digitalWrite(topic_pin[i], HIGH);    // turn the topic_pin off
@@ -83,7 +88,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
         Serial.print("I do not know what to do with ");
         Serial.print(String(payload_str));
         Serial.print(" on topic ");
-        Serial.println( String(topic));
+        Serial.println(String(topic));
       }
     }
   }
@@ -105,15 +110,10 @@ void connect_to_MQTT() {
 }
 
 
-void moistureCheck(){
-  if ( (millis() - moistureClock) > 1000 ) {
-  soilMoistureValue = analogRead(SensorPin);  //put Sensor insert into soil
-  soilMoisturePercent = map(soilMoistureValue, AirValue, WaterValue, 0, 100);
-  //Serial.println(soilMoistureValue);
-  //Serial.println(soilMoisturePercent);
-  //delay(1000);
-  moistureClock = millis();
-  }
+int soilMoisturePercent(){
+  int soilMoistureValue = analogRead(SensorPin);  //put Sensor insert into soil
+  int calibrated = map(soilMoistureValue, AirValue, WaterValue, 0, 100);
+  return calibrated;
 }
 
 
@@ -192,6 +192,7 @@ void loop() {
       //this guarentees high safety level of operation and prevents flooding
       //the client.publish is necessary to tell the mqtt-broker and clients the new event for correct handling
       digitalWrite(topic_pin[i], HIGH);   // turn the topic_pin off
+      Serial.print("Timer: ");
       client.publish(topic_names[i],"off");
       topic_clock[i] = 0;
     }
