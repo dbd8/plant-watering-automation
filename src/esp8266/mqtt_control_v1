@@ -119,6 +119,43 @@ int soilMoisturePercent(){
 }
 
 
+void checkTimer(){
+  for ( int i = 0; i < number_topic_names; i++){
+    if (( (millis() - topic_clock[i]) > topic_timer[i] ) and (digitalRead(topic_pin[i]) == 0)) {
+      //both of the following lines are doing the same, however they are not redundant
+      //the digitalWrite will switch off of the topic_pin even if network connection is lost and mqtt message cannot be published
+      //this guarentees high safety level of operation and prevents flooding
+      //the client.publish is necessary to tell the mqtt-broker and clients the new event for correct handling
+      digitalWrite(topic_pin[i], HIGH);   // turn the topic_pin off
+      Serial.print("Timer: ");
+      client.publish(topic_names[i],"off");
+      topic_clock[i] = 0;
+    }
+  }
+}
+
+
+void checkTopicState(){
+  if ( (millis() - tellstate) > topic_state_refresh ) {
+    for ( int i = 0; i < number_topic_names; i++){
+      //concat char of topic_names with state
+      char topic_state[30];
+      strcpy(topic_state,topic_names[i]);
+      strcat(topic_state,"/state");
+
+      if ( digitalRead(topic_pin[i]) ) {
+         client.publish(topic_state,"off");
+      }
+      else {
+        client.publish(topic_state,"on");
+      }
+    }
+
+    tellstate = millis();
+  }
+}
+
+
 
 void setup() {
   Serial.begin(115200);
@@ -165,40 +202,13 @@ void loop() {
     delay(5000);
   }
 
+
   // Tell the current state of topic_pins every X seconds
-
-  if ( (millis() - tellstate) > topic_state_refresh ) {
-    for ( int i = 0; i < number_topic_names; i++){
-      //concat char of topic_names with state
-      char topic_state[30];
-      strcpy(topic_state,topic_names[i]);
-      strcat(topic_state,"/state");
-
-      if ( digitalRead(topic_pin[i]) ) {
-         client.publish(topic_state,"off");
-      }
-      else {
-        client.publish(topic_state,"on");
-      }
-    }
-
-    tellstate = millis();
-  }
+  checkTopicState();
 
 
   // Timer for switch off of topics
-  for ( int i = 0; i < number_topic_names; i++){
-    if (( (millis() - topic_clock[i]) > topic_timer[i] ) and (digitalRead(topic_pin[i]) == 0)) {
-      //both of the following lines are doing the same, however they are not redundant
-      //the digitalWrite will switch off of the topic_pin even if network connection is lost and mqtt message cannot be published
-      //this guarentees high safety level of operation and prevents flooding
-      //the client.publish is necessary to tell the mqtt-broker and clients the new event for correct handling
-      digitalWrite(topic_pin[i], HIGH);   // turn the topic_pin off
-      Serial.print("Timer: ");
-      client.publish(topic_names[i],"off");
-      topic_clock[i] = 0;
-    }
-  }
+  checkTimer();
 
 
 
