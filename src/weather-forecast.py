@@ -16,12 +16,12 @@ def rain_in_next_timewindow(weather_data, time_window) -> bool:
     return False
 
 
-time_window = 6
+time_window = 12
 
 lat = "49.2627"
 lon = "9.2995"
 exclude = "current,minutely,daily"
-api_key = "6e28081a2602523329de6d510710dd1f"
+api_key = "XXX"
 
 open_weather_map_url = "https://api.openweathermap.org/data/2.5/onecall?lat=%s&lon=%s&exclude=%s&appid=%s" % (
     lat, lon, exclude, api_key)
